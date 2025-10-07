@@ -1,0 +1,12 @@
+/out/build/
+/out/*build
+/vcpkg_installed/
+/out/build/**/vcpkg_installed/
+*.db
+*.dll
+*.exe
+*.ilk
+*.pdb
+*.log
+CMakeUserPresets.json
+.vs
