@@ -1,6 +1,6 @@
-#define CHUNK_WIDTH 16
-#define CHUNK_HEIGHT 16
-#define BLOCK_SIZE 4.0f
+#define CHUNK_WIDTH 32
+#define CHUNK_HEIGHT 256
+#define BLOCK_SIZE 3.0f
 #define CHUNK_VOLUME CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH
 #define CHUNK_MAX_VERTS CHUNK_VOLUME * 8
 
@@ -23,3 +23,4 @@ typedef struct Chunk {
 
 Chunk* ChunkCreate();
 void ChunkDraw(Chunk* chunk);
+Model GenMeshTest(Chunk chunk);

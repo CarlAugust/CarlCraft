@@ -2,75 +2,11 @@
 #include <stdio.h>
 #include <chunk.h>
 #include <stdlib.h>
+#include <time.h>
 
 typedef enum {
     START_SCREEN, PAUSE_MENU, PLAYING
 } States;
-
-void AddCube(Vector3 pos, float size, Mesh mesh) {
-    // Half size for easier math (cube centered at pos)
-    float hs = size / 2.0f;
-
-    // Define the 8 cube corners
-    Vector3 verts[8] = {
-        { pos.x - hs, pos.y - hs, pos.z - hs }, // 0: left  bottom back
-        { pos.x + hs, pos.y - hs, pos.z - hs }, // 1: right bottom back
-        { pos.x + hs, pos.y + hs, pos.z - hs }, // 2: right top    back
-        { pos.x - hs, pos.y + hs, pos.z - hs }, // 3: left  top    back
-        { pos.x - hs, pos.y - hs, pos.z + hs }, // 4: left  bottom front
-        { pos.x + hs, pos.y - hs, pos.z + hs }, // 5: right bottom front
-        { pos.x + hs, pos.y + hs, pos.z + hs }, // 6: right top    front
-        { pos.x - hs, pos.y + hs, pos.z + hs }  // 7: left  top    front
-    };
-
-    // Each face is 2 triangles → indices into verts[]
-    int faces[36] = {
-        // back
-        0,1,2,  0,2,3,
-        // front
-        4,6,5,  4,7,6,
-        // left
-        0,3,7,  0,7,4,
-        // right
-        1,5,6,  1,6,2,
-        // bottom
-        0,4,5,  0,5,1,
-        // top
-        3,2,6,  3,6,7
-    };
-
-    for (int i = 0; i < 36; i++) {
-        mesh.vertices[i*3 + 0] = verts[faces[i]].x;
-        mesh.vertices[i*3 + 1] = verts[faces[i]].y;
-        mesh.vertices[i*3 + 2] = verts[faces[i]].z;
-
-        // Simple normals (just placeholder: up)
-        mesh.normals[i*3 + 0] = 0;
-        mesh.normals[i*3 + 1] = 1;
-        mesh.normals[i*3 + 2] = 0;
-
-        // Simple texcoords (could be improved)
-        mesh.texcoords[i*2 + 0] = (i % 2 == 0) ? 0.0f : 1.0f;
-        mesh.texcoords[i*2 + 1] = (i % 3 == 0) ? 0.0f : 1.0f;
-    }
-}
-
-Model GenMeshTest() {
-    Mesh mesh = { 0 };
-
-    mesh.triangleCount = 12;         // 6 faces * 2 triangles
-    mesh.vertexCount = 36;           // 12 triangles * 3 vertices
-
-    mesh.vertices = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));
-    mesh.texcoords = (float *)MemAlloc(mesh.vertexCount*2*sizeof(float));
-    mesh.normals  = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));
-
-    // Generate cube at (0,0,0) with size 2
-    AddCube((Vector3){0,0,0}, 2.0f, mesh);
-
-    UploadMesh(&mesh, false);
-    return LoadModelFromMesh(mesh);
-}
 
 int main(void)
 {
@@ -88,36 +24,56 @@ int main(void)
 
     SetTargetFPS(144);
 
-    // Chunk* chunk = ChunkCreate();
-    Model model = GenMeshTest(); 
+    clock_t start = clock();
+    Chunk* chunk = ChunkCreate();
+    clock_t end = clock();
+    double minutes = (double)(end - start) / CLOCKS_PER_SEC;
+    printf("\n\nTOTAL %f\n\n", minutes);
+    Model chunkModel = LoadModelFromMesh(chunk->mesh);
+    Vector3 rel = chunk->position;
+
+    float speed = 1.0f;
     while (!WindowShouldClose())
     {
-        // Variables: Gamestate ect...
+        speed = 1.0f;
+        float dx = GetFrameTime();
+
         UpdateCamera(&camera, CAMERA_FIRST_PERSON);
         if (IsWindowFocused && PLAYING) {
             DisableCursor();
         }
 
+        if (IsKeyDown(KEY_LEFT_SHIFT)) {
+            speed = 5.0f;
+        }
+
         if (IsKeyDown(KEY_SPACE)) {
-            camera.position.y += 0.1;
+            camera.position.y += 20 * dx * speed;
+            camera.target.y += 20 * dx * speed;
         }
         if (IsKeyDown(KEY_LEFT_CONTROL)) {
-            camera.position.y += -0.1;
+            camera.position.y += -20 * dx * speed;
+            camera.target.y += -20 * dx * speed;
         }
 
         BeginDrawing();
 
-        ClearBackground(DARKBLUE);
+        ClearBackground(WHITE);
+
         BeginMode3D(camera);
-        // ChunkDraw(chunk);
-        DrawModel(model, (Vector3){0,0,0}, 1.0f, WHITE);
+        DrawModel(chunkModel, chunk->position, 1.0f, PURPLE);
+        DrawModelWires(chunkModel, chunk->position, 1.0f, BLACK);
+        DrawCube((Vector3){0,0,0}, 1, 1, 1, BLUE);
 
         EndMode3D();
-        DrawFPS(10, 10);
-        EndDrawing();
-    }
 
-    // free(chunk);
+        DrawFPS(10, 10);
+        DrawText(TextFormat("X: %f, Y: %f, Z: %f", camera.position.x, camera.position.y, camera.position.z), 10, 40, 20, BLACK);
+        EndDrawing();   
+    }
+    
+    free(chunk);
+    UnloadModel(chunkModel);
     CloseWindow();
     return 0;
 }
