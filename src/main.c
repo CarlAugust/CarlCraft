@@ -30,8 +30,9 @@ int main(void)
     double minutes = (double)(end - start) / CLOCKS_PER_SEC;
     printf("\n\nTOTAL %f\n\n", minutes);
     Model chunkModel = LoadModelFromMesh(chunk->mesh);
+    chunkModel.meshes[0].vertices;
     Vector3 rel = chunk->position;
-
+    
     float speed = 1.0f;
     while (!WindowShouldClose())
     {
@@ -74,6 +75,8 @@ int main(void)
     
     free(chunk);
     UnloadModel(chunkModel);
+
+    FreeMeshBuffers();
     CloseWindow();
     return 0;
 }

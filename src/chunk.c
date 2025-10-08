@@ -4,11 +4,39 @@
 #include <math.h>
 #include <chunk.h>
 #include <stdio.h>
+#include <string.h>
 
 #define X(i) ((i) % (CHUNK_WIDTH))
 #define Y(i) (((i) / (CHUNK_WIDTH)) % (CHUNK_HEIGHT))
 #define Z(i) ((i) / ((CHUNK_WIDTH) * (CHUNK_HEIGHT)))
 #define I(x,y,z) ((x) + ((y) * (CHUNK_WIDTH)) + ((z) * (CHUNK_HEIGHT) * (CHUNK_WIDTH)))
+
+static float* verteciesBuffer = NULL;
+static float* texcoordsBuffer = NULL;
+static float* normalsBuffer = NULL;
+
+int prepMeshBuffers() {
+    int maxVertecies = CHUNK_VOLUME * 36;
+    if (verteciesBuffer == NULL) {
+        verteciesBuffer = MemAlloc(maxVertecies * 3 * sizeof(float));
+        if (!verteciesBuffer) return -1;
+    }
+    if (texcoordsBuffer == NULL) {
+        texcoordsBuffer = MemAlloc(maxVertecies * 2 * sizeof(float));
+        if (!texcoordsBuffer) return -1;
+    }
+    if (normalsBuffer == NULL) {
+        normalsBuffer = MemAlloc(maxVertecies * 3 * sizeof(float));
+        if (!normalsBuffer) return -1;
+    }
+    return 0;
+}
+
+void FreeMeshBuffers() {
+    MemFree(verteciesBuffer);
+    MemFree(texcoordsBuffer);
+    MemFree(normalsBuffer);
+}
 
 static const int FACE_INDICES[6][6] = {
     // { 0, 1, 2,  0, 2, 3 }, // Z -
@@ -26,11 +54,11 @@ struct mesh_data {
     float* norms;
 } mesh_data;
 
-// @r: relative position, @v: verticie
-static int AddVert(Mesh mesh, Vector3 r, Vector3 v, int i) {
-    mesh.vertices[i*3 + 0] = r.x + v.x;
-    mesh.vertices[i*3 + 1] = r.y + v.y;
-    mesh.vertices[i*3 + 2] = r.z + v.z;
+// @r: relative position, @v: vertices
+static int AddVert(float* vertices, Vector3 r, Vector3 v, int i) {
+    vertices[i*3 + 0] = r.x + v.x;
+    vertices[i*3 + 1] = r.y + v.y;
+    vertices[i*3 + 2] = r.z + v.z;
     return i + 1;
 }
 
@@ -57,16 +85,11 @@ Chunk* ChunkCreate(Vector3 position) {
         // chunk->blocks[i].position.z = (float)(i / (H * W)) * BLOCK_SIZE;
     }
 
-
-    // Load the mesh... done... or something
-    // Potential to be moves to another function for sorted code porpuses
-
     Mesh mesh = { 0 };
-    // TODO: IS there a better number to use here then max amount of vertexes
+
+    // TODO: IS there a better number to use here then max amount of vertexes?
     mesh.vertexCount = CHUNK_VOLUME * 36;
-    mesh.vertices = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));
-    mesh.texcoords = (float *)MemAlloc(mesh.vertexCount*2*sizeof(float));
-    mesh.normals  = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));
+
 
     Vector3 verts[8] = {
         (Vector3){0,0,0},
@@ -79,14 +102,16 @@ Chunk* ChunkCreate(Vector3 position) {
         (Vector3){0, BLOCK_SIZE, BLOCK_SIZE}
     };     
 
-
+    if (prepMeshBuffers() == -1) {
+        // TODO: DO SOME ERROR ACTION
+        return NULL;
+    }
 
     int x, y, z, currentVert = 0;
     for (int i = 0; i < chunk->volume; i++) {
         if (chunk->blocks[i] == AIR) {
             continue;
         }
-
 
         x = X(i);
         y = Y(i);
@@ -109,20 +134,19 @@ Chunk* ChunkCreate(Vector3 position) {
 
             for (int k = 0; k < 6; k++) {
                 int vi = FACE_INDICES[f][k];
-                currentVert = AddVert(mesh, rel, verts[vi], currentVert);
+                currentVert = AddVert(verteciesBuffer, rel, verts[vi], currentVert);
             }
         }
-
-        // We figure out what faces should be produces
-
-        // Then we add all the faces to the mesh buffer and its potential uvs
-        // Also remember to count the faces
     }
 
     mesh.vertexCount = currentVert;
+    mesh.vertices = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));
+    mesh.texcoords = (float *)MemAlloc(mesh.vertexCount*2*sizeof(float));
+    mesh.normals  = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));    
+    memcpy(mesh.vertices, verteciesBuffer, mesh.vertexCount*3*sizeof(float));
+
     // TODO: THERE IS PROBOBLY WORK TO BE DONE EHRE
     UploadMesh(&mesh, false);
-
     chunk->mesh = mesh;
 
     return chunk;
@@ -138,7 +162,4 @@ void ChunkDraw(Chunk* chunk) {
 
         DrawCubeWires((Vector3){x * BLOCK_SIZE + BLOCK_SIZE / 2, y * BLOCK_SIZE + BLOCK_SIZE / 2 , z * BLOCK_SIZE + BLOCK_SIZE / 2}, BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE, BLACK);
     }
-}
-
-Model GenMeshTest(Chunk chunk) {
 }
