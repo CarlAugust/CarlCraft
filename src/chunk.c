@@ -5,6 +5,7 @@
 #include <chunk.h>
 #include <stdio.h>
 #include <string.h>
+#include <arena.h>
 
 #define X(i) ((i) % (CHUNK_WIDTH))
 #define Y(i) (((i) / (CHUNK_WIDTH)) % (CHUNK_HEIGHT))
@@ -62,9 +63,9 @@ static int AddVert(float* vertices, Vector3 r, Vector3 v, int i) {
     return i + 1;
 }
 
-Chunk* ChunkCreate(Vector3 position) { 
+Chunk* ChunkCreate(Arena* arena, Vector3 position) { 
     // TODO: Ideally should be allocated to some sort of chunk arena, to prevent reallocation
-    Chunk* chunk = MemAlloc(sizeof(Chunk) + sizeof(BlockId) * (CHUNK_VOLUME));
+    Chunk* chunk = Arena_alloc(arena, sizeof(Chunk) + sizeof(BlockId) * (CHUNK_VOLUME));
     if (!chunk) {
         perror("ERROR ALLOCATING");
         return NULL;
