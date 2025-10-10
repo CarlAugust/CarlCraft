@@ -94,9 +94,7 @@ Chunk* ChunkCreate(Arena* arena, Vector3 position) {
 
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int z = 0; z < CHUNK_WIDTH; z++) {
-            float zheight = PerlinNoise2d((Vector2) { x + chunk->position.x, z + chunk->position.z }, 12, 0.7, 1010);
-            height = zheight * CHUNK_HEIGHT;
-            printf("Z %f;;;; H %f\n", zheight, height);
+            height = PerlinNoise2d((Vector2) { x + chunk->position.x, z + chunk->position.z }, 12, 0.7, 1010) * CHUNK_HEIGHT;
             for (int y = 0; y < height; y++) {
                 chunk->blocks[I(x, y, z)] = DIRT;
             }
