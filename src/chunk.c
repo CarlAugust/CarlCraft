@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <arena.h>
+#include <perlin.h>
 
 #define X(i) ((i) % (CHUNK_WIDTH))
 #define Y(i) (((i) / (CHUNK_WIDTH)) % (CHUNK_HEIGHT))
@@ -64,6 +65,11 @@ static int AddVert(float* vertices, Vector3 r, Vector3 v, int i) {
 }
 
 Chunk* ChunkCreate(Arena* arena, Vector3 position) { 
+    if (prepMeshBuffers() == -1) {
+        // TODO: DO SOME ERROR ACTION
+        return NULL;
+    }
+
     // TODO: Ideally should be allocated to some sort of chunk arena, to prevent reallocation
     Chunk* chunk = Arena_alloc(arena, sizeof(Chunk) + sizeof(BlockId) * (CHUNK_VOLUME));
     if (!chunk) {
@@ -71,7 +77,7 @@ Chunk* ChunkCreate(Arena* arena, Vector3 position) {
         return NULL;
     }
     
-    chunk->position = (Vector3){0,0,0};
+    chunk->position = position;
     chunk->volume = CHUNK_VOLUME;
     chunk->height = CHUNK_HEIGHT;
     chunk->width = CHUNK_WIDTH;
@@ -79,18 +85,28 @@ Chunk* ChunkCreate(Arena* arena, Vector3 position) {
     // Also has to change to use seed system or something
     int W = CHUNK_WIDTH;
     int H = CHUNK_HEIGHT;
-    for (int i = 0; i < chunk->volume; i++) {
-        chunk->blocks[i] = rand() % 2;
-        // chunk->blocks[i].position.x = (float)(i % W) * BLOCK_SIZE;
-        // chunk->blocks[i].position.y = (float)((i / W) % H) * BLOCK_SIZE;
-        // chunk->blocks[i].position.z = (float)(i / (H * W)) * BLOCK_SIZE;
+    float height;
+
+    // Make all empty
+    for (int i = 0; i < CHUNK_VOLUME; i++) {
+        chunk->blocks[i] = AIR;
+    }
+
+    for (int x = 0; x < CHUNK_WIDTH; x++) {
+        for (int z = 0; z < CHUNK_WIDTH; z++) {
+            float zheight = PerlinNoise2d((Vector2) { x + chunk->position.x, z + chunk->position.z }, 12, 0.7, 1010);
+            height = zheight * CHUNK_HEIGHT;
+            printf("Z %f;;;; H %f\n", zheight, height);
+            for (int y = 0; y < height; y++) {
+                chunk->blocks[I(x, y, z)] = DIRT;
+            }
+        }
     }
 
     Mesh mesh = { 0 };
 
     // TODO: IS there a better number to use here then max amount of vertexes?
     mesh.vertexCount = CHUNK_VOLUME * 36;
-
 
     Vector3 verts[8] = {
         (Vector3){0,0,0},
@@ -103,10 +119,6 @@ Chunk* ChunkCreate(Arena* arena, Vector3 position) {
         (Vector3){0, BLOCK_SIZE, BLOCK_SIZE}
     };     
 
-    if (prepMeshBuffers() == -1) {
-        // TODO: DO SOME ERROR ACTION
-        return NULL;
-    }
 
     int x, y, z, currentVert = 0;
     for (int i = 0; i < chunk->volume; i++) {

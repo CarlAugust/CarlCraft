@@ -3,6 +3,7 @@
 #include <chunk.h>
 #include <stdlib.h>
 #include <time.h>
+#include <arena.h>
 
 typedef enum {
     START_SCREEN, PAUSE_MENU, PLAYING
@@ -20,18 +21,20 @@ int main(void)
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;         
     
-    InitWindow(screenWidth, screenHeight, "raylib [core] example - basic window");
+    InitWindow(screenWidth, screenHeight, "Raylib [core] example - basic window");
 
     SetTargetFPS(144);
 
-    clock_t start = clock();
-    Chunk* chunk = ChunkCreate();
-    clock_t end = clock();
-    double minutes = (double)(end - start) / CLOCKS_PER_SEC;
-    printf("\n\nTOTAL %f\n\n", minutes);
-    Model chunkModel = LoadModelFromMesh(chunk->mesh);
-    chunkModel.meshes[0].vertices;
-    Vector3 rel = chunk->position;
+    // SETUP ARENA BUFFER
+    Arena* bufferArena = Arena_init(MB(1000));
+
+    Chunk* chunk[4][4];
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            chunk[i][j] = ChunkCreate(bufferArena, (Vector3){i * CHUNK_WIDTH * BLOCK_SIZE, 0, j * CHUNK_WIDTH * BLOCK_SIZE});
+            chunk[i][j]->model = LoadModelFromMesh(chunk[i][j]->mesh);
+        }
+    }
     
     float speed = 1.0f;
     while (!WindowShouldClose())
@@ -62,8 +65,13 @@ int main(void)
         ClearBackground(WHITE);
 
         BeginMode3D(camera);
-        DrawModel(chunkModel, chunk->position, 1.0f, PURPLE);
-        DrawModelWires(chunkModel, chunk->position, 1.0f, BLACK);
+
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                DrawModel(chunk[i][j]->model, chunk[i][j]->position, 1.0f, (Color){200 + i * 20, 122 + j * 30, 255, 255});
+                DrawModelWires(chunk[i][j]->model, chunk[i][j]->position, 1.0f, BLACK);
+            }
+        }
         DrawCube((Vector3){0,0,0}, 1, 1, 1, BLUE);
 
         EndMode3D();
@@ -72,9 +80,15 @@ int main(void)
         DrawText(TextFormat("X: %f, Y: %f, Z: %f", camera.position.x, camera.position.y, camera.position.z), 10, 40, 20, BLACK);
         EndDrawing();   
     }
-    
-    free(chunk);
-    UnloadModel(chunkModel);
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            UnloadModel(chunk[i][j]->model);
+        }
+    }
+
+    free(bufferArena);
+
 
     FreeMeshBuffers();
     CloseWindow();
