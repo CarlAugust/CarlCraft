@@ -23,7 +23,7 @@ int main(void)
     
     InitWindow(screenWidth, screenHeight, "Raylib [core] example - basic window");
 
-    SetTargetFPS(144);
+    SetTargetFPS(1440);
 
     // SETUP ARENA BUFFER
     Arena* bufferArena = Arena_init(MB(1000));
@@ -37,10 +37,11 @@ int main(void)
     }
     
     float speed = 1.0f;
+
     while (!WindowShouldClose())
     {
         speed = 1.0f;
-        float dx = GetFrameTime();
+        float dt = GetFrameTime();
 
         UpdateCamera(&camera, CAMERA_FIRST_PERSON);
         if (IsWindowFocused && PLAYING) {
@@ -52,12 +53,12 @@ int main(void)
         }
 
         if (IsKeyDown(KEY_SPACE)) {
-            camera.position.y += 20 * dx * speed;
-            camera.target.y += 20 * dx * speed;
+            camera.position.y += 20 * dt * speed;
+            camera.target.y += 20 * dt * speed;
         }
         if (IsKeyDown(KEY_LEFT_CONTROL)) {
-            camera.position.y += -20 * dx * speed;
-            camera.target.y += -20 * dx * speed;
+            camera.position.y += -20 * dt * speed;
+            camera.target.y += -20 * dt * speed;
         }
 
         BeginDrawing();
@@ -75,7 +76,7 @@ int main(void)
         DrawCube((Vector3){0,0,0}, 1, 1, 1, BLUE);
 
         EndMode3D();
-
+        
         DrawFPS(10, 10);
         DrawText(TextFormat("X: %f, Y: %f, Z: %f", camera.position.x, camera.position.y, camera.position.z), 10, 40, 20, BLACK);
         EndDrawing();   
