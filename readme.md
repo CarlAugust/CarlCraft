@@ -1,7 +1,7 @@
 # CARLCRAFT!!!!
 
 I might change the name later, but im having fun... i belive.
-
+The project has some basic mesh creation and perlin noise to generate som randomized terrain, which is sort of choppy.
 
 
 ## CMakeUserPresets.json for vcpkg
