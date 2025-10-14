@@ -6,12 +6,26 @@
 #define CHUNK_VOLUME CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH
 #define CHUNK_MAX_VERTS CHUNK_VOLUME * 8
 
+#include <stdlib.h>
 #include <raylib.h>
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
 #include <arena.h>
+#include <perlin.h>
 
 typedef enum BlockId {
-    AIR, DIRT, STONE
+    AIR,
+    DIRT, GRASS, STONE,
+
+
+    BLOCKID_ENUM_SIZE // end of enum
 } BlockId;
+#define BLOCK_TEXTURE_WIDTH 8
+#define BLOCK_TEXTURE_HEIGHT 24
+#define BLOCK_TEXTURE_ATLAS_HEIGHT BLOCK_TEXTURE_HEIGHT / BLOCK_TEXTURE_WIDTH
+
+
 
 /*
     @position: The lowest left left position of a block. So for a chunch spanning x: 0-32, y 0-64, z 0-32,

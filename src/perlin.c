@@ -1,9 +1,6 @@
 // Generating perlin noise
 
-#include <raylib.h>
-#include <stdint.h>
-#include <math.h>
-#include <stdio.h>
+#include <perlin.h>
 
 unsigned int hash(int x, int y, int seed) {
 	unsigned int h = x * 374761393 + y * 668265263 + seed * 69069;

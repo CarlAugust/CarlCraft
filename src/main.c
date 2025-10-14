@@ -23,7 +23,7 @@ int main(void)
     
     InitWindow(screenWidth, screenHeight, "Raylib [core] example - basic window");
 
-    SetTargetFPS(1440);
+    SetTargetFPS(144);
 
     // SETUP ARENA BUFFER
     Arena* bufferArena = Arena_init(MB(1000));

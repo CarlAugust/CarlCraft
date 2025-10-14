@@ -1,4 +1,9 @@
 #pragma once
+
+#include <stdlib.h>
+#include <raylib.h>
+
+
 typedef struct Arena {
     size_t size;
     size_t capacity;

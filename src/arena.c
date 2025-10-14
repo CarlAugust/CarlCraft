@@ -1,7 +1,5 @@
 // Arena code such that i can have one large arena for all buffers
 
-#include <stdlib.h>
-#include <raylib.h>
 #include <arena.h>
 
 Arena* Arena_init(size_t capacity) {
