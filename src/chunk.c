@@ -6,13 +6,11 @@
 #define Y(i) (((i) / (CHUNK_WIDTH)) % (CHUNK_HEIGHT))
 #define Z(i) ((i) / ((CHUNK_WIDTH) * (CHUNK_HEIGHT)))
 #define I(x,y,z) ((x) + ((y) * (CHUNK_WIDTH)) + ((z) * (CHUNK_HEIGHT) * (CHUNK_WIDTH)))
-#define WORLDGEN_SEED 1111
+#define WORLDGEN_SEED 10820
 
 static float* verteciesBuffer = NULL;
 static float* texcoordsBuffer = NULL;
 static float* normalsBuffer = NULL;
-
-Texture blockLoadTexturePackAtlas();
 
 int prepMeshBuffers() {
     int maxVertecies = CHUNK_VOLUME * 36;
@@ -40,11 +38,29 @@ void FreeMeshBuffers() {
 static const int FACE_INDICES[6][6] = {
     // { 0, 1, 2,  0, 2, 3 }, // Z -
     { 0, 2, 1,  0, 3, 2 }, // Z -
-    { 4, 5, 6,  4, 6, 7 }, // Z + 
-    { 0, 7, 3,  0, 4, 7 }, // X -
+    { 5, 7, 4,  5, 6, 7 }, // Z + 
+    { 4, 3, 0,  4, 7, 3 }, // X -
     { 1, 6, 5,  1, 2, 6 }, // X +
-    { 0, 5, 4,  0, 1, 5 }, // Y -
+    { 1, 4, 0,  1, 5, 4 }, // Y -
     { 3, 6, 2,  3, 7, 6 } // Y +
+};
+
+static const Vector2 faceTexcoords[6] = {
+    {0.0f, 1.0f }, // Bottom-left
+    { 1.0f, 0.0f }, // Top-right
+    { 1.0f, 1.0f }, // Bottom-right
+    {0.0f, 1.0f }, // Bottom-left
+    { 0.0f, 0.0f },  // Top-left
+    { 1.0f, 0.0f}, // Top-right
+};
+
+static Vector3 cubeNormals[6] = {
+    {0.0f, 0.0f, 1.0f}, // Front
+    {1.0f, 0.0f, 0.0f}, // Right
+    {0.0f, 0.0f, -1.0f}, // Back
+    {-1.0f, 0.0f, 0.0f}, // Left
+    {0.0f, -1.0f, 0.0f}, // Bottom
+    {0.0f, 1.0f, 0.0f}, // Top
 };
 
 struct mesh_data {
@@ -54,11 +70,21 @@ struct mesh_data {
 } mesh_data;
 
 // @r: relative position, @v: vertices
-static int AddVert(float* vertices, Vector3 r, Vector3 v, int i) {
+void addVert(float* vertices, Vector3 r, Vector3 v, int i) {
     vertices[i*3 + 0] = r.x + v.x;
     vertices[i*3 + 1] = r.y + v.y;
     vertices[i*3 + 2] = r.z + v.z;
-    return i + 1;
+}
+
+void addTexcoords(float* texcoords, Vector2 uv, int i) {
+	texcoords[i * 2 + 0] = uv.x;
+	texcoords[i * 2 + 1] = uv.y;
+}
+
+void addNormals(float* normals, Vector3 n, int i) {
+	normals[i * 3 + 0] = n.x;
+	normals[i * 3 + 1] = n.y;
+	normals[i * 3 + 2] = n.z;
 }
 
 void ChunkGeneration(Chunk* chunk) {
@@ -72,8 +98,13 @@ void ChunkGeneration(Chunk* chunk) {
         for (int z = 0; z < CHUNK_WIDTH; z++) {
             height = PerlinNoise2d((Vector2) { x + chunk->position.x / BLOCK_SIZE, z + chunk->position.z / BLOCK_SIZE }, 12, 0.5, WORLDGEN_SEED) * CHUNK_HEIGHT;
             for (int y = 0; y < height; y++) {
-                chunk->blocks[I(x, y, z)] = DIRT;
+                if (height - y < 5) {    
+                    chunk->blocks[I(x, y, z)] = DIRT;
+                } else {
+                    chunk->blocks[I(x, y, z)] = STONE;
+                }
             }
+            chunk->blocks[I(x, (int)(height), z)] = GRASS;
         }
     }
 }
@@ -81,7 +112,7 @@ void ChunkGeneration(Chunk* chunk) {
 void ChunkMeshGen(Chunk* chunk ) {
     Mesh mesh = { 0 };
     if (prepMeshBuffers() == -1) {
-        return mesh;
+        return;
     }
 
     Vector3 verts[8] = {
@@ -97,6 +128,9 @@ void ChunkMeshGen(Chunk* chunk ) {
 
 
     int x, y, z, currentVert = 0;
+    float tileWidth = 1.0f / BLOCK_TEXTURE_ATLAS_ROW_COUNT;
+    float tileHeight = 1.0f / 3; 
+
     for (int i = 0; i < chunk->volume; i++) {
         if (chunk->blocks[i] == AIR) {
             continue;
@@ -123,7 +157,26 @@ void ChunkMeshGen(Chunk* chunk ) {
 
             for (int k = 0; k < 6; k++) {
                 int vi = FACE_INDICES[f][k];
-                currentVert = AddVert(verteciesBuffer, rel, verts[vi], currentVert);
+                addVert(verteciesBuffer, rel, verts[vi], currentVert);
+                addNormals(normalsBuffer, cubeNormals[f], currentVert);
+
+                float uOffset = (chunk->blocks[i] - 1) * tileWidth;
+                float vOffset = 0.0f;
+
+                if (f == 5) {
+                    vOffset = 2 * tileHeight;
+                } else if (f == 4) {
+                    vOffset = 1 * tileHeight;
+                } else {
+                    vOffset = 0 * tileHeight;
+                }
+
+                Vector2 uv = faceTexcoords[k];
+                uv.x = uOffset + uv.x * tileWidth;
+                uv.y = vOffset + uv.y * tileHeight;
+
+                addTexcoords(texcoordsBuffer, uv, currentVert);
+                currentVert++;
             }
         }
     }
@@ -131,8 +184,10 @@ void ChunkMeshGen(Chunk* chunk ) {
     mesh.vertexCount = currentVert;
     mesh.vertices = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));
     mesh.texcoords = (float *)MemAlloc(mesh.vertexCount*2*sizeof(float));
-    mesh.normals  = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));    
+    mesh.normals = (float *)MemAlloc(mesh.vertexCount*3*sizeof(float));    
     memcpy(mesh.vertices, verteciesBuffer, mesh.vertexCount*3*sizeof(float));
+    memcpy(mesh.texcoords, texcoordsBuffer, mesh.vertexCount*2*sizeof(float));
+    memcpy(mesh.normals, normalsBuffer, mesh.vertexCount*3*sizeof(float));
 
     UploadMesh(&mesh, false);
     chunk->mesh = mesh;
@@ -169,7 +224,7 @@ void ChunkDraw(Chunk* chunk) {
 }
 
 // This is techincally a rather inefficent solution, though i dont know what else to do
-static const char* blockToString(BlockId id) {
+static char* blockToString(BlockId id) {
     switch(id) {
         case DIRT:
             return "dirt";
@@ -182,26 +237,26 @@ static const char* blockToString(BlockId id) {
     }
 }
 
-static Texture blockLoadTexturePackAtlas() {
-    Image atlas = GenImageColor(BLOCK_TEXTURE_WIDTH * BLOCK_TEXTURE_ATLAS_HEIGHT, BLOCK_TEXTURE_HEIGHT, BLANK);
+Texture BlockLoadTexturePackAtlas() {
+    Image atlas = GenImageColor(BLOCK_TEXTURE_WIDTH * BLOCK_TEXTURE_ATLAS_ROW_COUNT, BLOCK_TEXTURE_HEIGHT, BLANK);
     BlockId block = DIRT;
     char* blockName;
     Image blockImg;
 
     while(block != BLOCKID_ENUM_SIZE) {
         blockName = blockToString(block);
-        blockImg = LoadImage(TextFormat("resources/%satlas", blockName));
+        blockImg = LoadImage(TextFormat("resources/%satlas.png", blockName));
 
         if(blockImg.height == 0 && blockImg.width == 0) {
             printf("[ENGINE]: DID NOT FIND TEXTURE FOR %s, ERROR!!!\n", blockName);
             blockImg = GenImageChecked(BLOCK_TEXTURE_WIDTH, BLOCK_TEXTURE_HEIGHT, BLOCK_TEXTURE_WIDTH / 2, BLOCK_TEXTURE_HEIGHT / 2, PURPLE, BLACK);
         }
 
-        ImageDraw(&atlas, blockImg, (Rectangle){0,0,8,24}, (Rectangle){BLOCK_TEXTURE_WIDTH * (block - 1)}, WHITE);
+        ImageDraw(&atlas, blockImg, (Rectangle){0,0,8,24}, (Rectangle){BLOCK_TEXTURE_WIDTH * (block - 1), 0, BLOCK_TEXTURE_WIDTH, BLOCK_TEXTURE_HEIGHT}, WHITE);
         UnloadImage(blockImg);
         block++;
     }
-    
+
     Texture tatlas = LoadTextureFromImage(atlas);
     UnloadImage(atlas);
     return tatlas;

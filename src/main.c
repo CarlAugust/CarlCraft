@@ -27,16 +27,18 @@ int main(void)
 
     // SETUP ARENA BUFFER
     Arena* bufferArena = Arena_init(MB(1000));
-
+    Texture atlasTexture = BlockLoadTexturePackAtlas();
     Chunk* chunk[4][4];
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             chunk[i][j] = ChunkCreate(bufferArena, (Vector3){i * CHUNK_WIDTH * BLOCK_SIZE, 0, j * CHUNK_WIDTH * BLOCK_SIZE});
             chunk[i][j]->model = LoadModelFromMesh(chunk[i][j]->mesh);
+            chunk[i][j]->model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = atlasTexture;
         }
     }
     
     float speed = 1.0f;
+
 
     while (!WindowShouldClose())
     {
@@ -69,14 +71,11 @@ int main(void)
 
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                DrawModel(chunk[i][j]->model, chunk[i][j]->position, 1.0f, (Color){200 + i * 20, 122 + j * 30, 255, 255});
-                DrawModelWires(chunk[i][j]->model, chunk[i][j]->position, 1.0f, BLACK);
+                DrawModel(chunk[i][j]->model, chunk[i][j]->position, 1.0f, WHITE);
             }
         }
-        DrawCube((Vector3){0,0,0}, 1, 1, 1, BLUE);
-
-        EndMode3D();
         
+        EndMode3D();
         DrawFPS(10, 10);
         DrawText(TextFormat("X: %f, Y: %f, Z: %f", camera.position.x, camera.position.y, camera.position.z), 10, 40, 20, BLACK);
         EndDrawing();   

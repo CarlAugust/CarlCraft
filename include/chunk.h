@@ -23,7 +23,7 @@ typedef enum BlockId {
 } BlockId;
 #define BLOCK_TEXTURE_WIDTH 8
 #define BLOCK_TEXTURE_HEIGHT 24
-#define BLOCK_TEXTURE_ATLAS_HEIGHT BLOCK_TEXTURE_HEIGHT / BLOCK_TEXTURE_WIDTH
+#define BLOCK_TEXTURE_ATLAS_ROW_COUNT (BLOCK_TEXTURE_HEIGHT / BLOCK_TEXTURE_WIDTH)
 
 
 
@@ -43,5 +43,5 @@ typedef struct Chunk {
 
 Chunk* ChunkCreate(Arena* arena, Vector3 position);
 void ChunkDraw(Chunk* chunk);
-
 void FreeMeshBuffers();
+Texture BlockLoadTexturePackAtlas();
