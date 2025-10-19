@@ -31,17 +31,20 @@ float perlinNoiseSample2d(Vector2 p, int seed) {
 
     const double xf = fmodf(p.x, 1.0f);
     const double yf = fmodf(p.y, 1.0f);
+    int x0 = floorf(p.x);
+    int y0 = floorf(p.y);
+
+
+    // Random gradient Vectors
+    Vector2 r1 = randomGradient2D(x0, y0, seed);
+    Vector2 r2 = randomGradient2D(x0 + 1, y0, seed);
+    Vector2 r3 = randomGradient2D(x0 + 1, y0 + 1, seed);
+    Vector2 r4 = randomGradient2D(x0, y0 + 1, seed);
 
     Vector2 p1 = {xf, yf};
     Vector2 p2 = {xf - 1, yf};
     Vector2 p3 = {xf - 1, yf - 1};
     Vector2 p4 = {xf, yf - 1};
-
-    // Random gradient Vectors
-    Vector2 r1 = randomGradient2D(xf, yf, seed);
-    Vector2 r2 = randomGradient2D(xf + 1, xf, seed);
-    Vector2 r3 = randomGradient2D(xf + 1, yf + 1, seed);
-    Vector2 r4 = randomGradient2D(xf, yf + 1, seed);
 
     float u = fade(xf);
     float v = fade(yf);

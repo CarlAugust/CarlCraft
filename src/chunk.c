@@ -6,7 +6,7 @@
 #define Y(i) (((i) / (CHUNK_WIDTH)) % (CHUNK_HEIGHT))
 #define Z(i) ((i) / ((CHUNK_WIDTH) * (CHUNK_HEIGHT)))
 #define I(x,y,z) ((x) + ((y) * (CHUNK_WIDTH)) + ((z) * (CHUNK_HEIGHT) * (CHUNK_WIDTH)))
-#define WORLDGEN_SEED 1001
+#define WORLDGEN_SEED 8423
 
 static float* verteciesBuffer = NULL;
 static float* texcoordsBuffer = NULL;
@@ -96,7 +96,7 @@ void ChunkGeneration(Chunk* chunk) {
 
     for (int x = 0; x < CHUNK_WIDTH; x++) {
         for (int z = 0; z < CHUNK_WIDTH; z++) {
-            height = PerlinNoise2d((Vector2) { x + chunk->position.x / BLOCK_SIZE, z + chunk->position.z / BLOCK_SIZE }, 12, 0.5, WORLDGEN_SEED) * CHUNK_HEIGHT;
+            height = PerlinNoise2d((Vector2) { x + chunk->position.x / BLOCK_SIZE, z + chunk->position.z / BLOCK_SIZE }, 20, 0.5, WORLDGEN_SEED) * CHUNK_HEIGHT;
             for (int y = 0; y < height - 1; y++) {
                 if (height - y < 5) {    
                     chunk->blocks[I(x, y, z)] = DIRT;
