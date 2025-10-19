@@ -23,7 +23,7 @@ float dot2d(Vector2 v1, Vector2 v2) {
 
 Vector2 randomGradient2D(int x, int y, int seed) {
 	unsigned int h = hash(x, y, seed);
-    float angle = (h % 360) * (PI / 180.0f);
+    float angle = (h % 360) / (PI / 180.0f);
     return (Vector2){cosf(angle), sinf(angle)};
 }
 
