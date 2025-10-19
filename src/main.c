@@ -72,11 +72,6 @@ int main(void)
 
         for (int i = 0; i < chunkManager->count; i++) {
             DrawModel(chunkManager->chunks[i]->model, chunkManager->chunks[i]->position, 1.0f, WHITE);
-			Vector3 pos = chunkManager->chunks[i]->position;
-			pos.x += (CHUNK_WIDTH * BLOCK_SIZE) / 2;
-			pos.z += (CHUNK_WIDTH * BLOCK_SIZE) / 2;
-			pos.y += (CHUNK_HEIGHT * BLOCK_SIZE) / 2;
-			DrawCubeWires(pos, CHUNK_WIDTH * BLOCK_SIZE, CHUNK_HEIGHT * BLOCK_SIZE, CHUNK_WIDTH * BLOCK_SIZE, RED);
         }
         
         EndMode3D();

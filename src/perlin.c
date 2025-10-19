@@ -20,19 +20,18 @@ float dot2d(Vector2 v1, Vector2 v2) {
     return v1.x * v2.x + v1.y * v2.y;
 }
 
-
 Vector2 randomGradient2D(int x, int y, int seed) {
 	unsigned int h = hash(x, y, seed);
-    float angle = (h % 360) / (PI / 180.0f);
+    float angle = (h % 360) * (PI / 180.0f);
     return (Vector2){cosf(angle), sinf(angle)};
 }
 
 float perlinNoiseSample2d(Vector2 p, int seed) {
 
-    const double xf = fmodf(p.x, 1.0f);
-    const double yf = fmodf(p.y, 1.0f);
-    int x0 = floorf(p.x);
-    int y0 = floorf(p.y);
+    float xf = p.x - floorf(p.x);
+    float yf = p.y - floorf(p.y);
+    int x0 = (int)floorf(p.x);
+    int y0 = (int)floorf(p.y);
 
 
     // Random gradient Vectors
@@ -65,16 +64,15 @@ float PerlinNoise2d(Vector2 p, int octaves, float persistence, int seed) {
 
     for (int i = 0; i < octaves; i++)
 	{
-		float noise = perlinNoiseSample2d((Vector2){p.x * frequency * 0.02f, p.y * frequency * 0.02f}, seed);
+		float noise = perlinNoiseSample2d((Vector2){p.x * frequency * 0.01f, p.y * frequency * 0.01f}, seed);
 		total += noise * amplitude;
 		maxAmplitude += amplitude;
 		amplitude *= persistence;
 		frequency *= 2.0f;
 	}
-
     // Return clamped to [0, 1]
 	float value = ((total / maxAmplitude) + 1.0f) * 0.5f;
 	if (value < 0.0f) value = 0.0f;
 	if (value > 1.0f) value = 1.0f;
-	return value;
+	return pow(value, 2.5);
 }

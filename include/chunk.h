@@ -1,10 +1,11 @@
 #pragma once
 
 #define CHUNK_WIDTH 32
-#define CHUNK_HEIGHT 32
+#define CHUNK_HEIGHT 64
 #define BLOCK_SIZE 3.0f
 #define CHUNK_VOLUME CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH
 #define CHUNK_MAX_VERTS CHUNK_VOLUME * 8
+#define WORLDGEN_SEED 23173
 
 #include <stdlib.h>
 #include <raylib.h>
@@ -24,8 +25,6 @@ typedef enum BlockId {
 #define BLOCK_TEXTURE_WIDTH 8
 #define BLOCK_TEXTURE_HEIGHT 24
 #define BLOCK_TEXTURE_ATLAS_ROW_COUNT (BLOCK_TEXTURE_HEIGHT / BLOCK_TEXTURE_WIDTH)
-
-
 
 /*
     @position: The lowest left left position of a block. So for a chunch spanning x: 0-32, y 0-64, z 0-32,
@@ -47,7 +46,7 @@ typedef struct ChunkManager {
     Chunk** chunks;
 } ChunkManager;
 
-#define CHUNK_RENDER_DISTACE 8
+#define CHUNK_RENDER_DISTACE 12
 
 Chunk* ChunkCreate(Arena* arena, Vector3 position);
 void ChunkDraw(Chunk* chunk);
