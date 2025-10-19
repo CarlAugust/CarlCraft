@@ -23,7 +23,7 @@ float dot2d(Vector2 v1, Vector2 v2) {
 
 Vector2 randomGradient2D(int x, int y, int seed) {
 	unsigned int h = hash(x, y, seed);
-    float angle = (h % 360) / (PI / 180.0f);
+    float angle = (h % 360) * (PI / 180.0f);
     return (Vector2){cosf(angle), sinf(angle)};
 }
 
@@ -70,5 +70,8 @@ float PerlinNoise2d(Vector2 p, int octaves, float persistence, int seed) {
 	}
 
     // Return clamped to [0, 1]
-	return ((total / maxAmplitude) + 1.0f) * 0.5f;
+	float value = ((total / maxAmplitude) + 1.0f) * 0.5f;
+	if (value < 0.0f) value = 0.0f;
+	if (value > 1.0f) value = 1.0f;
+	return value;
 }

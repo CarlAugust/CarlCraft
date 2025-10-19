@@ -41,7 +41,16 @@ typedef struct Chunk {
     BlockId blocks[];
 } Chunk;
 
+
+typedef struct ChunkManager {
+    int count;
+    Chunk** chunks;
+} ChunkManager;
+
+#define CHUNK_RENDER_DISTACE 8
+
 Chunk* ChunkCreate(Arena* arena, Vector3 position);
 void ChunkDraw(Chunk* chunk);
+ChunkManager* ChunkManagerCreate(Arena* arena, int renderDistance, Texture atlas);
 void FreeMeshBuffers();
 Texture BlockLoadTexturePackAtlas();

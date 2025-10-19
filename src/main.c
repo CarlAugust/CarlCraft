@@ -23,22 +23,20 @@ int main(void)
     
     InitWindow(screenWidth, screenHeight, "Raylib [core] example - basic window");
 
-    SetTargetFPS(144);
+    SetTargetFPS(1440);
 
     // SETUP ARENA BUFFER
-    Arena* bufferArena = Arena_init(MB(1000));
+    Arena* bufferArena = Arena_init(MB(100));
+    if (bufferArena == NULL) {
+        goto exit_program;
+    }
     Texture atlasTexture = BlockLoadTexturePackAtlas();
-    Chunk* chunk[4][4];
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            chunk[i][j] = ChunkCreate(bufferArena, (Vector3){i * CHUNK_WIDTH * BLOCK_SIZE, 0, j * CHUNK_WIDTH * BLOCK_SIZE});
-            chunk[i][j]->model = LoadModelFromMesh(chunk[i][j]->mesh);
-            chunk[i][j]->model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = atlasTexture;
-        }
+    ChunkManager* chunkManager = ChunkManagerCreate(bufferArena, CHUNK_RENDER_DISTACE, atlasTexture);
+    if (chunkManager == NULL) {
+        goto exit_program;
     }
     
     float speed = 1.0f;
-
 
     while (!WindowShouldClose())
     {
@@ -62,6 +60,9 @@ int main(void)
             camera.position.y += -20 * dt * speed;
             camera.target.y += -20 * dt * speed;
         }
+                        
+
+
 
         BeginDrawing();
 
@@ -69,10 +70,13 @@ int main(void)
 
         BeginMode3D(camera);
 
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                DrawModel(chunk[i][j]->model, chunk[i][j]->position, 1.0f, WHITE);
-            }
+        for (int i = 0; i < chunkManager->count; i++) {
+            DrawModel(chunkManager->chunks[i]->model, chunkManager->chunks[i]->position, 1.0f, WHITE);
+			Vector3 pos = chunkManager->chunks[i]->position;
+			pos.x += (CHUNK_WIDTH * BLOCK_SIZE) / 2;
+			pos.z += (CHUNK_WIDTH * BLOCK_SIZE) / 2;
+			pos.y += (CHUNK_HEIGHT * BLOCK_SIZE) / 2;
+			DrawCubeWires(pos, CHUNK_WIDTH * BLOCK_SIZE, CHUNK_HEIGHT * BLOCK_SIZE, CHUNK_WIDTH * BLOCK_SIZE, RED);
         }
         
         EndMode3D();
@@ -81,17 +85,20 @@ int main(void)
         EndDrawing();   
     }
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            UnloadModel(chunk[i][j]->model);
+    goto exit_program;
+
+    exit_program:
+        UnloadTexture(atlasTexture);
+        if (chunkManager != NULL) {
+            for (int i = 0; i < chunkManager->count; i++) {
+                UnloadModel(chunkManager->chunks[i]->model);
+            }
         }
-    }
+        free(bufferArena);
+        FreeMeshBuffers();
+        CloseWindow();
+        return 0;
 
-    free(bufferArena);
-
-
-    FreeMeshBuffers();
-    CloseWindow();
     return 0;
 }
 
