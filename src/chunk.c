@@ -87,6 +87,7 @@ void addNormals(float* normals, Vector3 n, int i) {
 }
 
 void ChunkGeneration(Chunk* chunk) {
+    clock_t begin = clock();
     float height;
     // Make all empty
     for (int i = 0; i < CHUNK_VOLUME; i++) {
@@ -106,6 +107,10 @@ void ChunkGeneration(Chunk* chunk) {
             chunk->blocks[I(x, (int)(height - 1), z)] = GRASS;
         }
     }
+
+    clock_t end = clock();
+    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("%.6f time spent generating chunk\n", time_spent);
 }
 
 void ChunkMeshGen(Chunk* chunk ) {
@@ -194,9 +199,14 @@ void ChunkMeshGen(Chunk* chunk ) {
 
 Chunk* ChunkCreate(Arena* arena, Vector3 position) { 
 
-    Chunk* chunk = Arena_alloc(arena, sizeof(Chunk) + sizeof(BlockId) * (CHUNK_VOLUME));
+    Chunk* chunk = Arena_alloc(arena, sizeof(Chunk));
     if (!chunk) {
         perror("ERROR ALLOCATING");
+        return NULL;
+    }
+
+    chunk->blocks = Arena_alloc(arena, sizeof(BlockId) * (CHUNK_VOLUME));
+    if (!chunk->blocks) {
         return NULL;
     }
     
@@ -230,7 +240,8 @@ ChunkManager* ChunkManagerCreate(Arena* arena, int renderDistance, Texture atlas
     }
 
     manager->count = chunkCount;
-    manager->chunks = Arena_alloc(arena, chunkCount * sizeof(Chunk));
+    manager->chunks = Arena_alloc(arena, chunkCount * sizeof(Chunk*));
+    manager->running = 1;
 
     for (int i = 0; i < chunkCount; i++) {
         manager->chunks[i] = ChunkCreate(arena, (Vector3){(i % renderDistance) * CHUNK_WIDTH * BLOCK_SIZE - CHUNK_WIDTH * BLOCK_SIZE * renderDistance / 2, 0, ((int)(i / renderDistance)) * CHUNK_WIDTH * BLOCK_SIZE - CHUNK_WIDTH * BLOCK_SIZE * renderDistance / 2});
@@ -242,10 +253,78 @@ ChunkManager* ChunkManagerCreate(Arena* arena, int renderDistance, Texture atlas
         manager->chunks[i]->model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = atlas;
     }
 
+    manager->stack = ChunksUnusedStackCreate(arena, chunkCount);
+    if (manager->stack == NULL) {
+        return NULL;
+    }
+    
+    thrd_t* pool = Arena_alloc(arena, sizeof(thrd_t) * 4);
+
+    manager->workerCount = 4;
+    manager->workerPool = pool;
+
+    for (int i = 0; i < 4; i++) {
+        thrd_create(&pool[i], ChunkWorkerLoop, (void*)(manager));   
+    }
+
     return manager;
 }
 
+void ChunkWorkerLoop(void* voidedManager) {
+    const ChunkManager* manager = (ChunkManager*)(voidedManager);
 
+    while(manager->running) {
+        int idx = ChunksUnusedStackTop(manager->stack);
+        if (idx != -1) {
+            ChunkMeshGen(manager->chunks[idx]);
+        }
+    }
+    thrd_exit(NULL);
+}
+
+ChunksUnusedStack* ChunksUnusedStackCreate(Arena* arena, int size) {
+    ChunksUnusedStack* stack = Arena_alloc(arena, sizeof(ChunksUnusedStack) + size * sizeof(int));
+    if (!stack) return NULL;
+
+    int status = mtx_init(&stack->lock, mtx_plain);
+    if (status == thrd_error) return NULL;
+
+    stack->capacity = size;
+    stack->current = 0;
+    return stack;
+}
+
+int ChunksUnusedStackAdd(ChunksUnusedStack* stack, int idx) {
+    if (stack->current == stack->capacity) {
+        return -1;
+    }
+
+    int status = mtx_trylock(&stack->lock);
+    if (status = thrd_busy) {
+        return -1;
+    }
+
+    stack->bucket[stack->current] = idx;
+    stack->current++;
+
+    mtx_unlock(&stack->lock);
+    return 0;
+}
+
+int ChunksUnusedStackTop(ChunksUnusedStack* stack) {
+    if (stack->current == 0) {
+        return -1;
+    }
+    
+    mtx_lock(&stack->lock);
+
+    int idx = stack->bucket[stack->current];
+    stack->current--;
+
+    mtx_unlock(&stack->lock);
+
+    return idx;
+}
 
 // This is techincally a rather inefficent solution, though i dont know what else to do
 static char* blockToString(BlockId id) {

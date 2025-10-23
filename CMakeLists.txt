@@ -22,5 +22,5 @@ add_executable (CarlCraft ${MY_SOURCES})
 target_link_libraries(CarlCraft PRIVATE raylib)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET CarlCraft PROPERTY CXX_STANDARD 20)
+  set_property(TARGET CarlCraft PROPERTY C_STANDARD 11)
 endif()

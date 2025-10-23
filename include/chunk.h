@@ -14,6 +14,8 @@
 #include <string.h>
 #include <arena.h>
 #include <perlin.h>
+#include <threads.h>
+#include <time.h>
 
 typedef enum BlockId {
     AIR,
@@ -37,19 +39,50 @@ typedef struct Chunk {
     int volume;
     Mesh mesh;
     Model model;
-    BlockId blocks[];
+    BlockId* blocks;
 } Chunk;
+
+// TODO: 
+/*
+Instead of using a queue i simply use a stack for simplicity sake as to define chunk gen order i have to 
+define while looping through anyways. 
+Then the main game loop will loop through all chunks then notify through a cnd_t that 
+chunks are ready to be loaded which wakes up the threads that take the top element of the stack
+boom!!
+Then the threads generate the chunks.
+
+*/
+
+typedef struct ChunksUnusedStack {
+    mtx_t lock;
+    int current;
+    int capacity;
+    int bucket[];
+} ChunksUnusedStack;
+
+// This is used by the threads
+int ChunksUnusedStackTop(ChunksUnusedStack* stack);
+
+// This is used by the main game loop
+int ChunksUnusedStackAdd(ChunksUnusedStack* stack, int idx);
+ChunksUnusedStack* ChunksUnusedStackCreate(Arena* arena, int size);
 
 
 typedef struct ChunkManager {
     int count;
+    int workerCount;
+    thrd_t* workerPool;
+    volatile running;
+    ChunksUnusedStack* stack;
     Chunk** chunks;
 } ChunkManager;
 
-#define CHUNK_RENDER_DISTACE 12
+#define CHUNK_RENDER_DISTACE 4
 
 Chunk* ChunkCreate(Arena* arena, Vector3 position);
 void ChunkDraw(Chunk* chunk);
 ChunkManager* ChunkManagerCreate(Arena* arena, int renderDistance, Texture atlas);
+void ChunkWorkerLoop(void* voidedManager);
+
 void FreeMeshBuffers();
 Texture BlockLoadTexturePackAtlas();

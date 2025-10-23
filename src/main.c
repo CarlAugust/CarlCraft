@@ -26,7 +26,7 @@ int main(void)
     SetTargetFPS(1440);
 
     // SETUP ARENA BUFFER
-    Arena* bufferArena = Arena_init(MB(100));
+    Arena* bufferArena = Arena_init(MB(300));
     if (bufferArena == NULL) {
         goto exit_program;
     }
@@ -71,7 +71,14 @@ int main(void)
         BeginMode3D(camera);
 
         for (int i = 0; i < chunkManager->count; i++) {
+
+            Chunk* c = chunkManager->chunks[i];
             DrawModel(chunkManager->chunks[i]->model, chunkManager->chunks[i]->position, 1.0f, WHITE);
+			Vector3 pos = chunkManager->chunks[i]->position;
+			pos.x += (CHUNK_WIDTH * BLOCK_SIZE) / 2;
+			pos.z += (CHUNK_WIDTH * BLOCK_SIZE) / 2;
+			pos.y += (CHUNK_HEIGHT * BLOCK_SIZE) / 2;
+			DrawCubeWires(pos, CHUNK_WIDTH * BLOCK_SIZE, CHUNK_HEIGHT * BLOCK_SIZE, CHUNK_WIDTH * BLOCK_SIZE, RED);
         }
         
         EndMode3D();
@@ -84,6 +91,10 @@ int main(void)
 
     exit_program:
         UnloadTexture(atlasTexture);
+        chunkManager->running = 0;
+        for (int i = 0; i < chunkManager->workerCount; i++) {
+            thrd_join(chunkManager->workerPool[i], NULL);
+        }
         if (chunkManager != NULL) {
             for (int i = 0; i < chunkManager->count; i++) {
                 UnloadModel(chunkManager->chunks[i]->model);
